@@ -11,11 +11,8 @@
 #ifndef BMS_H_
 #define BMS_H_
 
-/* Memory check interval (# of cycles). */
 #define BMS_MEMORY_CHECK            (10U)    // Every 10 cycles (approx. 1 second)
 
-/* Max cell delta voltage threshold. Cells having higher voltage difference compared to the one with lowest voltage
- * will be balanced. */
 #define BMS_DELTA_V_MAX             (0x00F0) // (0 = 0V; 8191 = 5V) Set to 20 mV
 
 /* Max cell delta voltage fault threshold. If any cell has higher voltage difference compared to the one
