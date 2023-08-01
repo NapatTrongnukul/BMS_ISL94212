@@ -1,9 +1,6 @@
-
-/* Generic headers */
 #include <stdint.h>
 #include <stdbool.h>
 
-/* BFE related headers */
 #include <bfe/r_bfe_isl94212.h>
 uint32_t cc = 0;
 uint32_t dd = 0;
@@ -22,19 +19,6 @@ uint16_t bc;
 
 float volt_conv = 0.00061035156;
 
-/**********************************************************************************************************************
- Macro definitions
- *********************************************************************************************************************/
-
-/**********************************************************************************************************************
- Local Typedef definitions
- *********************************************************************************************************************/
-
-/**********************************************************************************************************************
- Exported global variables
- *********************************************************************************************************************/
-
-/** BFE implementation of BFE interface. */
 const bfe_api_t g_bfe_on_bfe =
 {
     .open             = R_BFE_Open,
@@ -62,8 +46,6 @@ const bfe_api_t g_bfe_on_bfe =
     .singleRegAccess  = R_BFE_SingleRegisterAccess
 };
 
-/* Maximum delay between command and response at different daisy chain data rates [us].
- * Please, refer to ISL94212 Datasheet! */
 const uint32_t g_bfe_max_resp_delay_us[13][4] = {{2640,  1320,  660,   330},   //2 devices in stack
                                                  {4010,  2010,  1010,  510},   //3 devices in stack
                                                  {5550,  2780,  1390,  700},   //4 devices in stack
@@ -78,23 +60,14 @@ const uint32_t g_bfe_max_resp_delay_us[13][4] = {{2640,  1320,  660,   330},   /
                                                  {50160, 25080, 12540, 6270},  //13 devices in stack
                                                  {62480, 31240, 15620, 7810}}; //14 devices in stack
 
-/* Maximum delay between two adjacent response bytes at different daisy chain data rates [us].
- * Please, refer to ISL94212 Datasheet! */
 const uint32_t g_bfe_max_bytes_delay_us[4] = {544, 272, 136, 68};
 
-/* Minimum communications wait time [us] (Maximum time for daisy chain ports to clear).
- * Please, refer to ISL94212 Datasheet! */
 const uint32_t g_bfe_min_wait_time_us[4] = {144, 72, 36, 18};
 
-/* Maximum wait time for devices entering sleep mode.
- * Please, refer to ISL94212 Datasheet! */
 const uint32_t g_bfe_sleep_time_us[4] = {4000, 2000, 1000, 500};
 
-/* Maximum wait time for devices to exit sleep mode.
- * Please, refer to ISL94212 Datasheet! */
 const uint32_t g_bfe_wakeup_time_us[4] = {100000, 100000, 100000, 100000};
 
-/* Wait counter for wait operation monitoring */
 static volatile uint32_t s_spi_wait_count = BFE_SPI_MAX_CNT;
 static volatile uint32_t s_spi_timeout = BFE_SPI_TO_MAX_CNT;
 
@@ -131,9 +104,6 @@ static st_bfe_comm_timeouts_t s_comm_delays =
     .wakeup_time_us   = ZERO
 };
 
-/**********************************************************************************************************************
- Private (static) variables and functions
- *********************************************************************************************************************/
 static e_bms_err_t bfe_identify (st_bfe_ctrl_t * p_bfe_ctrl);
 static e_bms_err_t bfe_reset (st_bfe_ctrl_t * p_bfe_ctrl);
 static e_bms_err_t bfe_setup (st_bfe_ctrl_t * p_bfe_ctrl);
@@ -146,51 +116,6 @@ static e_bms_err_t bfe_spi_pending_resp_get (st_isl94212_spi_msg_t * p_spi_msg);
 static e_bms_err_t bfe_command_encode (st_isl94212_spi_msg_t * p_spi_msg);
 static e_bms_err_t bfe_responce_decode (st_isl94212_spi_msg_t * p_spi_msg);
 
-/* Function Name: R_BFE_Open */
-/******************************************************************************************************************//**
- * This function initializes a Battery Front End.
- *
- * This function performs the following tasks:
- * - Parameter checking and error conditions processing.
- * - Initializes a communication timeout timer.
- * - Initializes a communication interface to connect to the BFE (master) device.
- * - Resets the device (stack).
- * - Accomplishes identification procedure of daisy chain devices when initializing a stack.
- * - Reads serial numbers of all BFE devices.
- * - Checks the memory.
- * - Writes to non-default values to setup registers.
- *
- * The following input parameters need to be set:
- * - p_bfe_ctrl->wd_time
- * - p_bfe_ctrl->setup.i_wire_scan
- * - p_bfe_ctrl->setup.balance_mode
- * - p_bfe_ctrl->setup.temp_flt_mon
- * - p_bfe_ctrl->setup.flt_tot_samples
- * - p_bfe_ctrl->setup.overvoltage_limit
- * - p_bfe_ctrl->setup.undervoltage_limit
- * - p_bfe_ctrl->setup.ext_temp_limit
- * - p_bfe_ctrl->setup.cells_cfg
- *
- * The following output parameters are modified by this function:
- * - p_bfe_ctrl->status.ic_temp_limit
- * - p_bfe_ctrl->status.v_trim
- * - p_bfe_ctrl->status.identify_ctr
- * - p_bfe_ctrl->status.stacked_devs
- * - p_bfe_ctrl->status.serial_number
- *
- * @pre Please, perform an appropriate peripheral communication module setup, according to the BFE datasheet!
- * @warning This function does not check the communication module settings!
- * @param[in]       p_bfe_ctrl                  Pointer to battery front end control structure.
- * @param[in]       p_bfe_cfg                   Pointer to battery front end configuration structure.
- * @retval          BFE_SUCCESS                 Battery Front End is successfully initialized.
- * @retval          BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval          BMS_ERR_SPI_INIT            SPI initialization error.
- * @retval          BMS_ERR_COMM_TIMEOUT_INIT   Communication timeout timer initialization error.
- * @retval          BMS_ERR_...                 Inherit from bfe_reset().
- * @retval          BMS_ERR_...                 Inherit from bfe_identify().
- * @retval          BMS_ERR_...                 Inherit from bfe_EEPROMcheck().
- * @retval          BMS_ERR_...                 Inherit from bfe_setup().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_Open(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_cfg_t const * const p_bfe_cfg)
 {
     e_bms_err_t err     = BMS_SUCCESS; // Error status
@@ -204,20 +129,7 @@ e_bms_err_t R_BFE_Open(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_cfg_t const * const p_
 
 #endif // BFE_CFG_PARAM_CHECKING_EN
 
-/** To work with ISL94212, configure the SPI peripheral module with the following settings:
-* - Operating mode: Master
-* - Clock phase: Data sampling on odd edge
-* - Clock polarity: Low when idle
-* - Bit order: MSB first
-* - Slave select polarity: Active low
-* - SPI Mode: SPI operation (asserts SSL automatically) for Full Duplex
-* - MOSI Idle State: Idle value fixing disable
-* - Bitrate: 2 Mbps (maximal)
-*
-* For more information, please, refer to ISL94212 Datasheet!
-*/
 
-    /* Clear status. */
     memset(&p_bfe_ctrl->status, ZERO, sizeof(st_bfe_status_t));
 
 #if BFE_CFG_STA_DEV > 1U // Daisy chain operation
@@ -228,12 +140,8 @@ e_bms_err_t R_BFE_Open(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_cfg_t const * const p_
 
     BFE_ERROR_RETURN(FSP_SUCCESS == fsp_err, BMS_ERR_COMM_TIMEOUT_INIT); // Check for errors.
 
-
-    /* Get the source clock frequency (in Hz). */
     uint32_t timer_freq_hz = R_FSP_SystemClockHzGet(FSP_PRIV_CLOCK_PCLKB) >> g_timer_one_shot_cfg.source_div;
 
-    /* Covert communication timeouts depending on communication speed.
-     * A cast to uint64_t is used to prevent uint32 overflow. */
     s_comm_delays.max_resp_delay   = (uint32_t) (((uint64_t) timer_freq_hz *
                                                  g_bfe_max_resp_delay_us[BFE_CFG_STA_DEV - 2U][p_bfe_cfg->d_rate_dch])
                                                                                                        / BFE_US_PER_S);
@@ -291,30 +199,7 @@ e_bms_err_t R_BFE_Open(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_cfg_t const * const p_
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_Open
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_Close */
-/******************************************************************************************************************//**
- * This function deinitializes a Battery Front End.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Deinitializes the communication interface to connect to the BFE (master) device.
- *
- * The following output parameters are modified by this function:
- * - p_bfe_ctrl->status.serial_number
- * - p_bfe_ctrl->status.initialized
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]       p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval          BFE_SUCCESS                 Battery Front End successfully deinitialized.
- * @retval          BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval          BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval          BMS_ERR_SPI_DEINIT          SPI deinitialization error.
- * @retval          BMS_ERR_COMM_TIMEOUT_INIT   One shot timer deinitialization error.
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_Close(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err     = BMS_SUCCESS; // Error status
@@ -353,47 +238,7 @@ e_bms_err_t R_BFE_Close(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_Close
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_Reset */
-/******************************************************************************************************************//**
- * This function resets, identifies and checks the Battery Front End.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Resets the device (stack).
- * - Accomplishes identification procedure of daisy chain devices when initializing a stack.
- * - Checks the memory.
- *
- * The following input parameters need to be set:
- * - p_bfe_ctrl->wd_time
- * - p_bfe_ctrl->setup.i_wire_scan
- * - p_bfe_ctrl->setup.balance_mode
- * - p_bfe_ctrl->setup.temp_flt_mon
- * - p_bfe_ctrl->setup.flt_tot_samples
- * - p_bfe_ctrl->setup.overvoltage_limit
- * - p_bfe_ctrl->setup.undervoltage_limit
- * - p_bfe_ctrl->setup.ext_temp_limit
- * - p_bfe_ctrl->setup.cells_cfg
- *
- * The following output parameters are modified by this function:
- * - p_bfe_ctrl->status.ic_temp_limit
- * - p_bfe_ctrl->status.v_trim
- * - p_bfe_ctrl->status.identify_ctr
- * - p_bfe_ctrl->status.stacked_devs
- * - p_bfe_ctrl->status.serial_number
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]       p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval          BFE_SUCCESS                 Battery Front End is successfully reseted.
- * @retval          BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval          BMS_ERR_...                 Inherit from bfe_reset().
- * @retval          BMS_ERR_...                 Inherit from bfe_identify().
- * @retval          BMS_ERR_...                 Inherit from bfe_EEPROMcheck().
- * @retval          BMS_ERR_...                 Inherit from bfe_setup().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_Reset(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err = BMS_SUCCESS; // Error status
@@ -405,7 +250,6 @@ e_bms_err_t R_BFE_Reset(st_bfe_ctrl_t * p_bfe_ctrl)
 
 #endif // BFE_CFG_PARAM_CHECKING_EN
 
-    /* Clear the serial number. */
     memset(&p_bfe_ctrl->status.serial_number[0], ZERO, sizeof(p_bfe_ctrl->status.serial_number));
 
     p_bfe_ctrl->status.initialized = BFE_UNINITILIZED; // Clear the initialization complete flag.
@@ -448,31 +292,7 @@ e_bms_err_t R_BFE_Reset(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_Reset
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_CommTest */
-/******************************************************************************************************************//**
- * This function tests the communication between the master device and microcontroller and the devices
- *  in the stack.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - When stand-alone operation reads User Register 1, stores the value, writes and reads User Register 1,
- * compares and restores value.
- * - When daisy-chain operation sends ACK command and waits for response form the top stack device.
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval      BFE_SUCCESS                 The Battery Front End is reachable.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_SPI_COMM_ERR        SPI communication error (stand-alone).
- * @retval      BMS_ERR_COMM_ERR            Communication error (daisy chain).
- * @retval      BMS_ERR_REG_VERIFY          Register write verification error.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_CommTest(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err  = BMS_SUCCESS; // Error status
@@ -564,33 +384,7 @@ e_bms_err_t R_BFE_CommTest(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_CommTest
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_Sleep */
-/******************************************************************************************************************//**
- * This function puts the Battery Front End in to Sleep Mode.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a Sleep Command to the stand-alone device or all devices in the stack or sets the watchdog timeout to 1 s.
- * - Receive the ACK response from top device when Sleep Command is used.
- *
- * The following output parameters are modified by this function:
- * - p_bfe_ctrl->status.in_sleep_mode
- * - p_bfe_ctrl->status.balancing
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]       p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval          BFE_SUCCESS                 The Sleep Commands are successfully sent.
- * @retval          BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval          BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval          BMS_ERR_SLEEP               Error entering sleep state.
- * @retval          BMS_ERR_...                 Inherit from bfe_watchdog().
- * @retval          BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- * @retval          BMS_ERR_...                 Inherit from bfe_spi_d_ch_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_Sleep(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err = BMS_SUCCESS; // Error status
@@ -650,32 +444,7 @@ e_bms_err_t R_BFE_Sleep(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_Sleep
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_WakeUp */
-/******************************************************************************************************************//**
- * This function wakes up the Battery Front End.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a Sleep Command to to verify master device is in sleep mode.
- * - Sends a Wake up Command to the stand-alone device or all devices in the stack.
- * - In daisy chain mode clears the Fault Status Register and reverts the watchdog timeout.
- *
- * The following output parameters are modified by this function:
- * - p_bfe_ctrl->status.in_sleep_mode
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]       p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval          BFE_SUCCESS                 Battery Front End is successfully woken up.
- * @retval          BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval          BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval          BMS_ERR_WAKEUP              Device wake up error.
- * @retval          BMS_ERR_...                 Inherit from bfe_watchdog().
- * @retval          BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_WakeUp(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err  = BMS_SUCCESS; // Error status
@@ -759,33 +528,7 @@ e_bms_err_t R_BFE_WakeUp(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_WakeUp
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_RandomWakeUp */
-/******************************************************************************************************************//**
- * This function wakes up a sleeping device on random position in the stack.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a Sleep Command to to verify devices below the sleeping one are also in sleep mode.
- * - Sends a Wake up Command to all devices in the stack.
- * - Repeat sequence until all devises are awake or the loops has expired.
- *
- * The following output parameters are modified by this function:
- * - p_bfe_ctrl->status.in_sleep_mode
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]       p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval          BFE_SUCCESS                 Battery Front End is successfully woken up.
- * @retval          BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval          BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval          BMS_ERR_WAKEUP              Device wake up error.
- * @retval          BMS_ERR_...                 Inherit from bfe_watchdog().
- * @retval          BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- * @retval          BMS_ERR_...                 Inherit from bfe_spi_d_ch_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_RandomWakeUp(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err  = BMS_SUCCESS; // Error status
@@ -868,38 +611,7 @@ e_bms_err_t R_BFE_RandomWakeUp(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_RandomWakeUp
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_VoltTempAllGet */
-/******************************************************************************************************************//**
- * This function performs battery, all cells, internal temperature and ExT1 voltage scan and read. (Stand-alone/
- *  Daisy chain)
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a Scan All Command to the stand-alone device or all devices in the stack.
- * - Confirms the reception of the Scan All Command.
- * - Sends commands to read battery, cell voltages, internal and external temperatures and second reference voltage.
- *
- * The following output parameters are modified by this function:
- * - p_meas_data->v_sec_ref
- * - p_meas_data->v_ic_temp
- * - p_meas_data->v_ext_temps
- * - p_meas_data->v_batt
- * - p_meas_data->v_cells
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @param[out]  p_meas_data                 Pointer to measured data array.
- * @retval      BFE_SUCCESS                 The temperatures and voltages successfully are read.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_RESPONCE            Invalid response is received.
- * @retval      BMS_ERR_SCAN_CNTR           The Scan Command was not received.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_VoltTempAllGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_meas_data)
 {
     e_bms_err_t err = BMS_SUCCESS; // Error status
@@ -1109,34 +821,7 @@ e_bms_err_t R_BFE_VoltTempAllGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_m
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_VoltTempAllGet
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_VAllGet */
-/******************************************************************************************************************//**
- * This function performs battery and all cells voltage scan and read.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a Scan Voltages Command to the stand-alone device or all devices in the stack.
- * - Confirms the reception of the Scan Voltages Command
- * - Sends commands to read battery and cell voltages
- *
- * The following output parameters are modified by this function:
- * - p_meas_data->v_batt
- * - p_meas_data->v_cells
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @param[out]  p_meas_data                 Pointer to measured data structure.
- * @retval      BFE_SUCCESS                 The voltages are successfully read.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_RESPONCE            Invalid response is received.
- * @retval      BMS_ERR_SCAN_CNTR           The Scan Command was not received.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_VAllGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_meas_data)
 {
     e_bms_err_t err                         = BMS_SUCCESS; // Error status
@@ -1281,32 +966,7 @@ e_bms_err_t R_BFE_VAllGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_meas_dat
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_VAllGet
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_VBattGet */
-/******************************************************************************************************************//**
- * This function performs battery voltage scan and read.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a Scan Voltages Command to the stand-alone device or all devices in the stack.
- * - Confirms the reception of the Scan Voltages Command
- * - Sends commands to read battery voltage
- *
- * The following output parameters are modified by this function:
- * - p_meas_data->v_batt
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @param[out]  p_meas_data                 Pointer to measured data array.
- * @retval      BFE_SUCCESS                 The voltages are successfully read.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_SCAN_CNTR           The Scan Command was not received.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_VBattGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_meas_data)
 {
     e_bms_err_t err                         = BMS_SUCCESS; // Error status
@@ -1439,37 +1099,7 @@ e_bms_err_t R_BFE_VBattGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_meas_da
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_VBattGet
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_VMixGet */
-/******************************************************************************************************************//**
- * This function performs battery, all cells and ExT1 voltage and internal temperature scan and read. (Stand-alone/
- * Daisy chain) It can be used also in case that ExT1 input of the master device is monitoring current.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a Scan Mix Command to the stand-alone device or all devices in the stack.
- * - Confirms the reception of the Scan Mix Command.
- * - Sends commands to Read Battery, Cell Voltages, Internal and Temperature and ExT1 Voltage.
- *
- * The following output parameters are modified by this function:
- * - p_meas_data->v_batt
- * - p_meas_data->v_cells
- * - p_meas_data->v_ic_temp
- * - p_meas_data->v_ext_temps
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @param[out]  p_meas_data                 Pointer to measured data array.
- * @retval      BFE_SUCCESS                 The temperatures and voltages successfully are read.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_RESPONCE            Invalid response is received.
- * @retval      BMS_ERR_SCAN_CNTR           The Scan Command was not received.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_VMixGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_meas_data)
 {
     e_bms_err_t err                         = BMS_SUCCESS; // Error status
@@ -1668,35 +1298,7 @@ e_bms_err_t R_BFE_VMixGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_meas_dat
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_VMixGet
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_TempsGet */
-/******************************************************************************************************************//**
- * This function performs internal temperature and ExTn voltages scan and read.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a Scan Temperatures Command to the stand-alone device or all devices in the stack.
- * - Confirms the reception of the Scan Temperatures Command.
- * - Sends commands to read Internal Temperature and ExT1-ExT4 Voltages and Second Reference Voltage.
- *
- * The following output parameters are modified by this function:
- * - p_meas_data->v_sec_ref
- * - p_meas_data->v_ic_temp
- * - p_meas_data->v_ext_temps
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @param[out]  p_meas_data                 Pointer to measured data array.
- * @retval      BFE_SUCCESS                 The temperatures are successfully read.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_RESPONCE            Invalid response is received.
- * @retval      BMS_ERR_SCAN_CNTR           The Scan Command was not received.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_TempsGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_meas_data)
 {
     e_bms_err_t err                         = BMS_SUCCESS; // Error status
@@ -1858,40 +1460,7 @@ e_bms_err_t R_BFE_TempsGet(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_meas_t * p_meas_da
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_TempsGet
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_FaultsAllRead */
-/******************************************************************************************************************//**
- * This function reads the fault registers.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Calls fault read static function.
- *
- * The following output parameters are modified by this function:
- * - p_faults->flt_oscillator
- * - p_faults->flt_wdt_timout
- * - p_faults->flt_ow_vbat
- * - p_faults->flt_ow_vss
- * - p_faults->flt_parity
- * - p_faults->flt_v_ref
- * - p_faults->flt_v_reg
- * - p_faults->flt_temp_mux
- * - p_faults->flt_over_temp
- * - p_faults->flt_overvolt
- * - p_faults->flt_undervolt
- * - p_faults->flt_open_wire
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @param[out]  p_faults                    Pointer to faults data structure.
- * @retval      BFE_SUCCESS                 The fault registers are successfully read.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_...                 Inherit from bfe_faults_read().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_FaultsAllRead(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_faults_t * p_faults)
 {
 #if BFE_CFG_PARAM_CHECKING_EN // Perform parameter checking.
@@ -1907,28 +1476,7 @@ e_bms_err_t R_BFE_FaultsAllRead(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_faults_t * p_
 
     return bfe_faults_read(p_bfe_ctrl, p_faults);
 }
-/**********************************************************************************************************************
- * End of function R_BFE_FaultsAllRead
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_FaultsCheck */
-/******************************************************************************************************************//**
- * This function checks the Battery Front End for fault state.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Checks the fault pin for assertion and returns fault if asserted.
- * - Read all fault status registers in the stack and check for asserted bits.
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval      BFE_SUCCESS                 The fault in is not asserted.
- * @retval      BMS_FAULT                   The fault in is asserted.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_GPIO_READ           Error in GPIO port read.
- * @retval      BMS_ERR_...                 Inherit from bfe_faults_read().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_FaultsCheck(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t      err         = BMS_SUCCESS; // Error status
@@ -1992,33 +1540,7 @@ e_bms_err_t R_BFE_FaultsCheck(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_FaultsCheck
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_FaultsAllClr */
-/******************************************************************************************************************//**
- * This function clears all faults.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a command to clear Fault Status, Over-temperature, Overvoltage, Undervoltage and Open Wire Registers
- * in stand-alone device or all devices in the stack.
- * - Resets the fault filter.
- * - Cleans the faults data structure.
- * - Checks if fault pin is deasserted.
- *
- * @pre The BFE interface should have already been opened!
- * @warning The fault data structure has to be cleaned manually!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval      BFE_SUCCESS                 All faults are successfully cleared.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_REG_VERIFY          Register write verification error.
- * @retval      BMS_ERR_GPIO_READ           Error in GPIO port read.
- * @retval      BMS_ERR_FLT_DEASSERT        Fault was not cleared.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_FaultsAllClr(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t      err         = BMS_SUCCESS;       // Error status
@@ -2214,38 +1736,7 @@ e_bms_err_t R_BFE_FaultsAllClr(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_FaultsAllClr
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_BalanceCtrl */
-/******************************************************************************************************************//**
- * This function selects cells and enables or inhibits cell balancing.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a command to select cells for balancing.
- * - Sends a command to enable or inhibit cell balancing to a stand-alone device or all devices in the stack.
- * - Verifies that the commands are received.
- *
- * The following input parameters need to be set:
- * - p_bfe_ctrl->balance_cell_sel
- * - p_bfe_ctrl->bal_pattern
- * - bal_ctrl
- *
- * The following output parameters are modified by this function:
- * - p_bfe_ctrl->status.balancing
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]       p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @param[in]       bal_ctrl                    Select action - enable or inhibit.
- * @retval          BFE_SUCCESS                 The cell balancing is successfully enabled/ inhibited.
- * @retval          BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval          BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval          BMS_ERR_BALANCE             The balance cannot be enabled in sleep mode.
- * @retval          BMS_ERR_REG_VERIFY          Register write verification error.
- * @retval          BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_BalanceCtrl(st_bfe_ctrl_t * p_bfe_ctrl, e_bfe_ctrl_bal_t bal_ctrl)
 {
     e_bms_err_t err       = BMS_SUCCESS; // Error status
@@ -2380,28 +1871,7 @@ e_bms_err_t R_BFE_BalanceCtrl(st_bfe_ctrl_t * p_bfe_ctrl, e_bfe_ctrl_bal_t bal_c
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_BalanceCtrl
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_ConfRegCheck */
-/******************************************************************************************************************//**
- * This function checks the configuration registers (Page 2) for corruption.
- * The recalculated checksum is automatically compared to the checksum stored in BFE internal memory. If both are
- * not equal a fault response is initiated.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Send a command to recalculate Page 2 checksum.
- *
- * @pre The BFE interface should have already been opened!
- * @warning The 'Calc Register Checksum' command has to be send each time a Page 2 register is modified.
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval      BFE_SUCCESS                 The compare command is successfully sent.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_ConfRegCheck(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err = BMS_SUCCESS;    // Error status
@@ -2443,40 +1913,7 @@ e_bms_err_t R_BFE_ConfRegCheck(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_ConfRegCheck
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_DeviceSetup */
-/******************************************************************************************************************//**
- * This function writes and verifies all setup registers.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Calls device setup static function.
- *
- * The following input parameters need to be set:
- * - p_bfe_ctrl->wd_time
- * - p_bfe_ctrl->setup.i_wire_scan
- * - p_bfe_ctrl->setup.balance_mode
- * - p_bfe_ctrl->setup.temp_flt_mon
- * - p_bfe_ctrl->setup.flt_tot_samples
- * - p_bfe_ctrl->setup.overvoltage_limit
- * - p_bfe_ctrl->setup.undervoltage_limit
- * - p_bfe_ctrl->setup.ext_temp_limit
- * - p_bfe_ctrl->setup.cells_cfg
- *
- * The following output parameters are modified by this function:
- * - p_bfe_ctrl->status.ic_temp_limit
- * - p_bfe_ctrl->status.v_trim
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval      BFE_SUCCESS                 The device is successfully configured.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_...                 Inherit from bfe_setup().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_DeviceSetup(st_bfe_ctrl_t * p_bfe_ctrl)
 {
 #if BFE_CFG_PARAM_CHECKING_EN // Perform parameter checking.
@@ -2491,30 +1928,7 @@ e_bms_err_t R_BFE_DeviceSetup(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return bfe_setup(p_bfe_ctrl);
 }
-/**********************************************************************************************************************
- * End of function R_BFE_DeviceSetup
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_WatchdogCtrl */
-/******************************************************************************************************************//**
- * This function enables or disables the watchdog timer and selects time.
- * Set a watchdog time in p_bfe_ctrl->wd_time. When '0' the watchdog is disabled.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Calls a watchdog control static function.
- *
- * The following input parameters need to be set:
- * - p_bfe_ctrl->wd_time
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval      BFE_SUCCESS                 The watchdog timer is successfully enabled/disabled.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_WDT_TIME            Invalid watchdog time.
- * @retval      BMS_ERR_...                 Inherit from bfe_watchdog().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_WatchdogCtrl(st_bfe_ctrl_t * p_bfe_ctrl)
 {
 #if BFE_CFG_PARAM_CHECKING_EN // Perform parameter checking.
@@ -2532,26 +1946,7 @@ e_bms_err_t R_BFE_WatchdogCtrl(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return bfe_watchdog(p_bfe_ctrl);
 }
-/**********************************************************************************************************************
- * End of function R_BFE_WatchdogCtrl
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_WatchdogReset */
-/******************************************************************************************************************//**
- * This function resets the watchdog timer.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends ACK Command to all devices in the stack to reset watchdog counters.
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @retval      BFE_SUCCESS                 The watchdog timer is successfully reseted.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_WDT_RESET           Watchdog timeout was not reset.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_WatchdogReset(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err = BMS_SUCCESS; // Error status
@@ -2594,33 +1989,7 @@ e_bms_err_t R_BFE_WatchdogReset(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_WatchdogReset
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_Scan */
-/******************************************************************************************************************//**
- * This function sends a Scan Command depending on the cmnd_type input parameter.
- * Set a command type to Scan Voltages, Temperatures, Mixed or All.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends the selected Scan Command to the BFE.
- * - Confirms the reception of the Scan Command.
- *
- * The following output parameters are modified by this function:
- * - cmnd_type
- *
- * @pre The BFE is opened.
- * @param[in]   p_bfe_ctrl                  Pointer to Battery Front End control structure.
- * @param[in]   cmnd_type                   The Scan Command type.
- * @retval      BFE_SUCCESS                 The Scan All Command was successfully sent.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_SCAN_TYPE           The Scan Command type input parameter is incorrect.
- * @retval      BMS_ERR_SCAN_CNTR           Scan Command was not received.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_Scan(st_bfe_ctrl_t * p_bfe_ctrl, e_bfe_scan_cmnd_types_t cmnd_type)
 {
     e_bms_err_t err                         = BMS_SUCCESS; // Error status
@@ -2769,37 +2138,7 @@ e_bms_err_t R_BFE_Scan(st_bfe_ctrl_t * p_bfe_ctrl, e_bfe_scan_cmnd_types_t cmnd_
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_Scan
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_UserRegsisterAccess */
-/******************************************************************************************************************//**
- * This function provides access to read or write in User Registers in all devices.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Reads the content of the User Registers.
- * - Writes into User Registers in every device.
- * - Verifies the content.
- * - Recalculate Page 2 registers checksum.
- *
- * The following input parameters need to be set:
- * - p_data_array
- * - data_dir
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]     p_bfe_ctrl                Pointer to Battery Front End control structure.
- * @param[in]     p_data_array              Pointer to data array.
- * @param[in]     p_bfe_ctrl                Direction of the data (Read/ Write).
- *
- * @retval      BFE_SUCCESS                 The User Registers are successfully read/ written.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_INVALID_ARGUMENT    The function has invalid input argument.
- * @retval      BMS_ERR_REG_VERIFY          Register write verification error.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_UserRegsisterAccess(st_bfe_ctrl_t *  p_bfe_ctrl,
                                       uint16_t *       p_data_array,
                                       e_bfe_data_dir_t data_dir)
@@ -2907,44 +2246,7 @@ e_bms_err_t R_BFE_UserRegsisterAccess(st_bfe_ctrl_t *  p_bfe_ctrl,
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_UserRegsisterAccess
- *********************************************************************************************************************/
 
-/* Function Name: R_BFE_SingleRegisterAccess */
-/******************************************************************************************************************//**
- * This function provides selects a custom command to single register of a particular device from the stack.
- * It does not support multiple response commands.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a command.
- * - Copies the response.
- *
- * The following input parameters need to be set:
- * - p_dev_addr
- * - p_reg_addr
- * - p_reg_data
- * - r_w_data
- *
- * The following output parameters are modified by this function:
- * - p_dev_addr
- * - p_reg_addr
- * - p_reg_data
- * - r_w_data
- *
- * @pre The BFE interface should have already been opened!
- * @param[in]     p_bfe_ctrl                Pointer to Battery Front End control structure.
- * @param[in]     p_dev_addr                Pointer to device address.
- * @param[in]     p_reg_addr                Pointer to register address.
- * @param[in]     p_reg_data                Pointer to data.
- * @param[in]     p_bfe_ctrl                Direction of the data (Read/ Write).
- *
- * @retval      BFE_SUCCESS                 The command is successfully sent.
- * @retval      BMS_ERR_INVALID_POINTER     Input argument is invalid.
- * @retval      BMS_ERR_INITIALIZATION      The BFE interface is not initialized.
- * @retval      BMS_ERR_...                 Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t R_BFE_SingleRegisterAccess(st_bfe_ctrl_t *            p_bfe_ctrl,
                                        uint16_t *              p_dev_addr,
                                        uint32_t *              p_reg_addr,
@@ -2986,26 +2288,7 @@ e_bms_err_t R_BFE_SingleRegisterAccess(st_bfe_ctrl_t *            p_bfe_ctrl,
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function R_BFE_SingleRegisterAccess
- *********************************************************************************************************************/
 
-/**********************************************************************************************************************
- * Function Name: bfe_identify
- * Description  : Runs identification procedure of the stack or/ and reads serial numbers.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Runs stack identification procedure (daisy chain operation).
- * - Reads the serial number of the stand-alone device or serial numbers of all devices in the stack.
- *
- * Arguments    : p_bfe_ctrl                Pointer to Battery Front End control structure.
- * Return Value : BFE_SUCCESS               The stack was successfully identified or/ and serial numbers were acquired.
- * Return Value : BMS_ERR_IDENT_ATTEMPTS    Three unsuccessful identification attempts were made.
- * Return Value : BMS_ERR_INVALID_STACK     Invalid stack size is detected.
- * Return Value : BMS_ERR_INVALID_CONF      Invalid configuration is detected.
- * Return Value : BFE_ERR_...               Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 static e_bms_err_t bfe_identify(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err = BMS_SUCCESS; // Error status
@@ -3179,23 +2462,7 @@ static e_bms_err_t bfe_identify(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_identify
- *********************************************************************************************************************/
 
-
-/**********************************************************************************************************************
- * Function Name: bfe_reset
- * Description  : Sends a reset command to the Battery Front End.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a Reset Command to the stand-alone device or all devices in the stack.
- *
- * Arguments    : p_bfe_ctrl                Pointer to Battery Front End control structure.
- * Return Value : BFE_SUCCESS               Battery Front End is successfully reseted.
- * Return Value : BFE_ERR_...               Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 static e_bms_err_t bfe_reset(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err        = BMS_SUCCESS; // Error status
@@ -3235,33 +2502,7 @@ static e_bms_err_t bfe_reset(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_reset
- *********************************************************************************************************************/
 
-
-/**********************************************************************************************************************
- * Function Name: bfe_setup
- * Description  : Writes into and verifies all setup registers.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Sends a write command to set setup registers of a stand-alone device or all stacked devices.
- * - Sends a write command to set Over-temperature, Overvoltage and Undervoltage Registers of a stand-alone device
- * or all stacked devices.
- * - Sends a write command to set Balance Status and Setup Registers of a stand-alone device or all stacked devices.
- * - Sends a write command to set Watchdog/balance Time Registers of a stand-alone device or all stacked devices.
- * - Sends a write command to configure Fault Setup Registers of a stand-alone device or all stacked devices.
- * - Verifies that the commands are received.
- * - Send a command to recalculate Page 2 checksum.
- *
- * Arguments    : p_bfe_ctrl                Pointer to Battery Front End control structure.
- * Return Value : BFE_SUCCESS               Battery Front End is successfully reseted.
- * Return Value : BMS_ERR_INITIALIZATION    The BFE interface is not initialized.
- * Return Value : BMS_ERR_REG_VERIFY        Register write verification error.
- * Return Value : BMS_ERR_BALANCE_MODE      Unsupported balance mode is selected.
- * Return Value : BFE_ERR_...               Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t bfe_setup(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err = BMS_SUCCESS;    // Error status
@@ -3530,25 +2771,7 @@ e_bms_err_t bfe_setup(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_setup
- *********************************************************************************************************************/
 
-/**********************************************************************************************************************
- * Function Name: bfe_faults_read
- * Description  : Reads the Fault Registers.
- *
- * This function performs the following tasks:
- * - If in daisy chain mode send read All Faults Command to all devices in the stack.
- * - If in stand-alone mode sends a Fault Status, Over-temperature, Overvoltage, Undervoltage and Open Wire Registers
- * read command.
- * - Set the fault flags in faults data structure.
- *
- * Arguments    : p_bfe_ctrl                Pointer to Battery Front End control structure.
- *                p_faults                  Faults data structure.
- * Return Value : BFE_SUCCESS               The fault registers are successfully read.
- * Return Value : BFE_ERR_...               Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 e_bms_err_t bfe_faults_read(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_faults_t * p_faults)
 {
     e_bms_err_t err = BMS_SUCCESS; // Error status
@@ -3781,27 +3004,7 @@ e_bms_err_t bfe_faults_read(st_bfe_ctrl_t * p_bfe_ctrl, st_bfe_faults_t * p_faul
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_faults_read
- *********************************************************************************************************************/
 
-/**********************************************************************************************************************
- * Function Name: bfe_watchdog
- * Description  : Enables or disables the watchdog timer and selects time. Set a watchdog time in p_bfe_ctrl->wd_time.
- * When '0' the watchdog is disabled.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Writes watchdog timer password to Device Setup Register if disabling.
- * - Writes watchdog time or 0 to Watchdog/Balance Time Register.
- * - Verifies register write.
- *
- * Arguments    : p_bfe_ctrl                Pointer to Battery Front End control structure.
- * Return Value : BMS_SUCCESS               The watchdog timer is successfully enabled/disabled.
- * Return Value : BMS_ERR_REG_VERIFY        Register write verification error.
- * Return Value : BMS_ERR_WDT_TIME          Invalid watchdog time.
- * Return Value : BFE_ERR_...               Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 static e_bms_err_t bfe_watchdog(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err  = BMS_SUCCESS; // Error status
@@ -3913,26 +3116,7 @@ static e_bms_err_t bfe_watchdog(st_bfe_ctrl_t * p_bfe_ctrl)
 #endif //BFE_CFG_DCH_OPERATION
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_watchdog
- *********************************************************************************************************************/
 
-/**********************************************************************************************************************
- * Function Name: bfe_EEPROMcheck
- * Description  : Compares shadow registers and factory written checksum to detect EEPROM data corruption (Stand-alone/
- * Daisy chain).
- *
- * This function performs the following tasks:
- * - Reads factory written checksum.
- * - Reads calculated checksum of shadow registers on power on or reset.
- * - Compares both checksums.
- *
- * Arguments    : p_bfe_ctrl                Pointer to Battery Front End control structure.
- * Return Value : BMS_SUCCESS               The checksums are equal and EEPROM data is not corrupted.
- * Return Value : BFE_ERR_EEPROM            The EEPROM data is corrupted.
- * Return Value : BMS_ERR_INVALID_POINTER   An input argument is invalid.
- * Return Value : BFE_ERR_...               Inherit from bfe_spi_msg_send_resp_get().
- *********************************************************************************************************************/
 static e_bms_err_t bfe_EEPROMcheck(st_bfe_ctrl_t * p_bfe_ctrl)
 {
     e_bms_err_t err                       = BMS_SUCCESS; // Error status
@@ -3993,36 +3177,7 @@ static e_bms_err_t bfe_EEPROMcheck(st_bfe_ctrl_t * p_bfe_ctrl)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_EEPROMcheck
- *********************************************************************************************************************/
 
-/**********************************************************************************************************************
- * Function Name: bfe_spi_msg_send_resp_get
- * Description  : Manages the sending and reception of a SPI data between the microcontroller and the Battery
- * Front End.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Checks for and receives pending data.
- * - Calls the command array encode function and copies the command to the transmit buffer.
- * - Calls SPI read/write function.
- * - Copies the response to the encoded response array and calls a decoding function.
- *
- * Arguments    : p_spi_msg                 Pointer to spi message structure.
- * Return Value : BFE_SUCCESS               The command was successfully encoded.
- * Return Value : BMS_ERR_INVALID_POINTER   An input argument is invalid.
- * Return Value : BMS_ERR_SPI_WRITE_READ    writeRead() has returned an error or transfer complete was no indicated
- * Return Value : BMS_ERR_RESP_LENGTH       The received response has unexpected length.
- * Return Value : BMS_ERR_ACK               Acknowledgment is not received.
- * Return Value : BMS_ERR_NAK               Unidentified command or CRC.
- * Return Value : BMS_ERR_GPIO_READ         Error reading the input.
- * Return Value : BMS_FAULT                 BMS fault is detected.
- * Return Value : BMS_ERR_COMM              Communication error.
- * Return Value : BFE_ERR_...               Inherit from bfe_spi_d_ch_resp_get().
- * Return Value : BFE_ERR_...               Inherit from bfe_encode_command().
- * Return Value : BFE_ERR_...               Inherit from bfe_decode_responce().
- *********************************************************************************************************************/
 static e_bms_err_t bfe_spi_msg_send_resp_get(st_isl94212_spi_msg_t * p_spi_msg)
 {
     e_bms_err_t      err           = BMS_SUCCESS;       // Error status for bsp functions
@@ -4224,27 +3379,7 @@ static e_bms_err_t bfe_spi_msg_send_resp_get(st_isl94212_spi_msg_t * p_spi_msg)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_spi_msg_send_resp_get
- *********************************************************************************************************************/
 
-/**********************************************************************************************************************
- * Function Name: bfe_spi_pending_resp_get
- * Description  : Checks for and receives a pending response data.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Checks data ready pin.
- * - Calls bfe_spi_d_ch_resp_get static function to receive the response.
- *
- * Arguments    : p_spi_msg                 Pointer to spi message structure.
- * Return Value : BFE_SUCCESS               The pending response was successfully processed.
- * Return Value : BMS_ERR_INVALID_POINTER   An input argument is invalid.
- * Return Value : BMS_ERR_SPI_WRITE_READ    writeRead() has returned an error or transfer complete was no indicated.
- * Return Value : BMS_ERR_GPIO_READ         Error reading the input.
- * Return Value : BMS_ERR_NO_PENDING_RESP   There is no pending response.
- * Return Value : BFE_ERR_...               Inherit from bfe_spi_d_ch_resp_get().
- *********************************************************************************************************************/
 static e_bms_err_t bfe_spi_pending_resp_get(st_isl94212_spi_msg_t * p_spi_msg)
 {
     e_bms_err_t      err           = BMS_SUCCESS;       // Error status for bsp functions
@@ -4286,28 +3421,7 @@ static e_bms_err_t bfe_spi_pending_resp_get(st_isl94212_spi_msg_t * p_spi_msg)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_spi_pending_resp_get
- *********************************************************************************************************************/
 
-/**********************************************************************************************************************
- * Function Name: bfe_spi_d_ch_resp_get
- * Description  : Receives all response data bytes.
- *
- * This function performs the following tasks:
- * - Wait until the data ready pin is asserted.
- * - Receive all pending bytes.
- * - Decode the response.
- *
- * Arguments    : p_spi_msg                 Pointer to spi message structure.
- * Return Value : BFE_SUCCESS               The command was successfully encoded.
- * Return Value : BMS_ERR_INVALID_POINTER   An input argument is invalid.
- * Return Value : BMS_ERR_SPI_WRITE_READ    Read() has returned an error or transfer complete was no indicated
- * Return Value : BMS_ERR_COMM_TIMEOUT      Error in communication timeout asynchronous timer.
- * Return Value : BMS_ERR_DRDY_TIMEOUT      Data ready pin was not asserted in the expected time interval.
- * Return Value : BMS_ERR_GPIO_READ         Error reading the input.
- * Return Value : BFE_ERR_...               Inherit from bfe_decode_responce().
- *********************************************************************************************************************/
 static e_bms_err_t bfe_spi_d_ch_resp_get(st_isl94212_spi_msg_t * p_spi_msg)
 {
     e_bms_err_t    err           = BMS_SUCCESS;       // Error status for bsp functions
@@ -4441,28 +3555,7 @@ static e_bms_err_t bfe_spi_d_ch_resp_get(st_isl94212_spi_msg_t * p_spi_msg)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_d_ch_p_resp_get
- *********************************************************************************************************************/
 
-/**********************************************************************************************************************
- * Function Name: bfe_command_encode
- * Description  : Encodes the data to be sent via SPI from the message structure address and data fields to the
- * encoded command buffer.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Encodes the device address, register type, register address and data into the command array.
- *
- * Arguments    : p_spi_msg                         Pointer to spi message structure.
- * Return Value : BFE_SUCCESS                       The command was successfully encoded.
- * Return Value : BMS_ERR_INVALID_POINTER           An input argument is invalid.
- * Return Value : BMS_ERR_INVALID_DEV_ADDRESS       There is no such an address in the daisy chain
- * Return Value : BMS_ERR_INVALID_BROADCAST         Invalid address all.
- * Return Value : BMS_ERR_INVALID_REG_DATA_LENGTH   The command data length exceeds the maximal register bit space.
- * Return Value : BMS_ERR_REGISTER_NOT_WRITABLE     The accessed register is read-only.
- * Return Value : BFE_ERR_...                       Inherit from crc4_add().
- *********************************************************************************************************************/
 static e_bms_err_t bfe_command_encode(st_isl94212_spi_msg_t * p_spi_msg)
 {
     e_bms_err_t err = BMS_SUCCESS; // Error status
@@ -4565,25 +3658,7 @@ static e_bms_err_t bfe_command_encode(st_isl94212_spi_msg_t * p_spi_msg)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_command_encode
- *********************************************************************************************************************/
 
-/**********************************************************************************************************************
- * Function Name: bfe_responce_decode
- * Description  : Decodes the data received via SPI from the message structure encoded response buffer to the
- * response data fields.
- *
- * This function performs the following tasks:
- * - Checks parameters and processes errors.
- * - Decodes the data into the response data array.
- * - Detect and decode multiple data response.
- *
- * Arguments    : p_spi_msg                 Pointer to spi message structure.
- * Return Value : BFE_SUCCESS               The response was successfully decoded.
- * Return Value : BMS_ERR_INVALID_POINTER   An input argument is invalid.
- * Return Value : BFE_ERR_...               Inherit from crc4_check().
- *********************************************************************************************************************/
 static e_bms_err_t bfe_responce_decode(st_isl94212_spi_msg_t * p_spi_msg)
 {
     e_bms_err_t err = BMS_SUCCESS; // Error status
@@ -4673,16 +3748,7 @@ static e_bms_err_t bfe_responce_decode(st_isl94212_spi_msg_t * p_spi_msg)
 
     return err;
 }
-/**********************************************************************************************************************
- * End of function bfe_responce_decode
- *********************************************************************************************************************/
 
-/* Function Name: spi_isr_callback */
-/******************************************************************************************************************//**
- * SPI callback function.
- * @param[in] p_args
- * @retval None
- *********************************************************************************************************************/
 void spi_isr_callback (spi_callback_args_t * p_args)
 {
     /* Check for SPI transfer complete condition. */
@@ -4695,22 +3761,11 @@ void spi_isr_callback (spi_callback_args_t * p_args)
         s_spi_event_flag = SPI_EVENT_TRANSFER_ABORTED;
     }
 }
-/**********************************************************************************************************************
- * End of function spi_isr_callback
- *********************************************************************************************************************/
 
-/* Function Name: spi_callback */
-/******************************************************************************************************************//**
- * SPI callback function.
- * @param[in] p_args
- * @retval None
- *********************************************************************************************************************/
 void comm_timeout0_callback (timer_callback_args_t * p_args)
 {
     FSP_PARAMETER_NOT_USED(p_args);
 
     s_timeout_event_flag = true;
 }
-/**********************************************************************************************************************
- * End of function spi_callback
- *********************************************************************************************************************/
+
