@@ -63,7 +63,7 @@ st_bfe_ctrl_t g_bfe0_ctrl =
          .flt_tot_samples    = BFE_TOT_4_SMPL,
          .balance_mode       = BFE_BALANCE_MODE_MANUAL,
 
-         /* Configure cell inputs for each device. */
+       
          .cells_cfg          = {
                                     /* Device 1 */
                                     ( BFE_REG_MASK_CELL_1
@@ -113,18 +113,14 @@ st_bfe_ctrl_t g_bfe0_ctrl =
 
                                 },
 
-         /* Configure temperatures to be fault monitored. */
+      
          .temp_flt_mon       = {
                                     /* Device 1 */
                                     ( BFE_REG_MASK_TEMP_IC),
 
                                     /* Device 2 */
                                     ( BFE_REG_MASK_TEMP_IC),
-
-                                    /* Device 3 */
-                                  // ( BFE_REG_MASK_TEMP_IC),
-
-                                    /* Add more if stack size is bigger */
+                               
                                }
     }
 };
@@ -139,11 +135,8 @@ const st_bfe_cfg_t g_bfe0_cfg =
 #endif // BFE_CFG_DCH_OPERATION
 };
 
-/* Instance structure to use BFE module. */
 const bfe_instance_t g_bfe0 =
 { .p_ctrl = &g_bfe0_ctrl, .p_cfg = &g_bfe0_cfg, .p_api = &g_bfe_on_bfe };
 
-/**********************************************************************************************************************
- Private (static) variables and functions
- *********************************************************************************************************************/
+
 
