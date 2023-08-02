@@ -215,9 +215,7 @@ void hal_entry(void)
                    g_bfe0_ctrl.balance_cell_sel[0] = 0;
                    g_bfe0_ctrl.balance_cell_sel[1] = 0;
 
-                   R_BSP_SoftwareDelay(100000, BSP_DELAY_UNITS_SECONDS);
-
-                   break;
+                break;
             }
 
             case BMS_CAN_Tx:
