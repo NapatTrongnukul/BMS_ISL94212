@@ -54,35 +54,19 @@ uint32_t  counter_balance_loops = 0;
 
 typedef struct
 {
-    double V_sensor[20];
-    double I_sensor[20];
-    double v_cell[24];
-    double I_sense;
-
+    double V_sensor[20], I_sensor[20], v_cell[24], I_sense;
 }ADCsenseParam;
 
 typedef struct
 {
-    double zeta[4][4];
-    double pkn[4][4];
-    double R0;
-    double Rp;
-    double Cp;
-    double QR;
-    double ocv_perdict;
-
+    double zeta[4][4], pkn[4][4], R0, Rp, Cp, QR, ocv_perdict   ;
+ 
 }estimationParam;
 
 typedef struct
 {
-    double soc_cell[24];
-    double soc_diff[12];
-    double cou_diff[12];
-    double I_bal[12];
-    double time_bal[12];
-    double soc_max;
-    double soc_min;
-
+    double soc_cell[24], soc_diff[12], cou_diff[12], I_bal[12], time_bal[12], soc_max ,soc_min  ;
+  
 }balancingParam;
 
 double *p3,*p5,*p8,*p9,*p10,*p11,*p12,*p12;
