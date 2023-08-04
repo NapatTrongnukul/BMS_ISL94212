@@ -52,9 +52,44 @@ uint32_t  counter_balance_loops = 0;
 #define voltage_size_n 89
 #define current_size_n 89
 
-double *p3,*p5,*p8,*p9,*p10,*p11;
-double V_sensor[20], I_sensor[20],xr[4][4],zeta[4][4],pkn[4][4],soc_obv[4],I_sense;
-double R0,Rp,Cp,QR,ocv_perdict;
+typedef struct
+{
+    double V_sensor[20];
+    double I_sensor[20];
+    double v_cell[24];
+    double I_sense;
+
+}ADCsenseParam;
+
+typedef struct
+{
+    double zeta[4][4];
+    double pkn[4][4];
+    double R0;
+    double Rp;
+    double Cp;
+    double QR;
+    double ocv_perdict;
+
+}estimationParam;
+
+typedef struct
+{
+    double soc_cell[24];
+    double soc_diff[12];
+    double cou_diff[12];
+    double I_bal[12];
+    double time_bal[12];
+    double soc_max;
+    double soc_min;
+
+}balancingParam;
+
+double *p3,*p5,*p8,*p9,*p10,*p11,*p12,*p12;
+double xr[4][4],soc_obv[4];
+int counter = 0;
+int *p13,*p14;
+int bal_time;
 
 e_bms_err_t  bms_err = BMS_SUCCESS;
 
@@ -84,15 +119,6 @@ st_bms_trans_flags_t   g_bms_trans_flags;
 uint8_t open_error = 0;
 uint8_t comTest_error = 0;
 uint8_t userRegs_error = 0;
-
-double v_cell[24],soc_cell[24], soc_diff[12],cou_diff[12],I_bal[12],time_bal[12];
-double soc_max,soc_min;
-
-double *p12;
-int *p13,*p14;
-
-int counter = 0;
-int bal_time;
 
 
 #endif /* HAL_ENTRY_H_ */
