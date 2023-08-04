@@ -1,5 +1,13 @@
 #include "hal_entry.h"
 
+typedef enum {
+        BMS_NORMAL_OPERATION,
+        BMS_BALANCING_OPERATION,
+        BMS_CAN_TX,
+        BMS_SLEEPING_OPERATION
+
+    }bms_state;
+
 void hal_entry(void)
 {
     fsp_err_t err = FSP_SUCCESS;
@@ -34,15 +42,7 @@ void hal_entry(void)
     g_bfe0.p_api->userRegsAccess(&g_bfe0_ctrl, &g_bfe0_user_data[0], BFE_WRITE_REG);
 
     counter = 0;
-
-    typedef enum {
-        BMS_NORMAL_OPERATION,
-        BMS_BALANCING_OPERATION,
-        BMS_CAN_Tx,
-        BMS_SLEEPING_OPERATION
-
-    }bms_state;
-
+    
     bms_state operation_mode = BMS_NORMAL_OPERATION;
 
     while (1)
@@ -218,7 +218,7 @@ void hal_entry(void)
                 break;
             }
 
-            case BMS_CAN_Tx:
+            case BMS_CAN_TX:
             {
 
                 for(int i =0; i<2;i++)
