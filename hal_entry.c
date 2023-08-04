@@ -1,13 +1,5 @@
 #include "hal_entry.h"
 
-typedef enum {
-        BMS_NORMAL_OPERATION,
-        BMS_BALANCING_OPERATION,
-        BMS_CAN_TX,
-        BMS_SLEEPING_OPERATION
-
-    }bms_state;
-
 void hal_entry(void)
 {
     fsp_err_t err = FSP_SUCCESS;
@@ -42,8 +34,22 @@ void hal_entry(void)
     g_bfe0.p_api->userRegsAccess(&g_bfe0_ctrl, &g_bfe0_user_data[0], BFE_WRITE_REG);
 
     counter = 0;
-    
-    bms_state operation_mode = BMS_NORMAL_OPERATION;
+
+    ADCsenseParam ADCParam;
+    estimationParam EstimationParam;
+    balancingParam  balanceParam;
+
+    typedef enum
+    {
+          BMS_NORMAL_OPERATION,
+          BMS_BALANCING_OPERATION,
+          BMS_CAN_TX,
+          BMS_SLEEPING_OPERATION
+
+    }bms_state;
+
+
+    bms_state operation_mode = 0; // 0 = normal, 1 = balancing, 2 = CAN Transmit, 3 = BMS sleep
 
     while (1)
     {
@@ -61,7 +67,7 @@ void hal_entry(void)
                         {
                             for (int j = 0;j<12;j++)
                             {
-                                v_cell[count_cell] = volt_cells[i][j]*V_CON_const;
+                                ADCParam.v_cell[count_cell] = volt_cells[i][j]*V_CON_const;
                             }
                         }
 
@@ -73,50 +79,50 @@ void hal_entry(void)
 
                     for (int i = 0;i<24;i++)
                     {
-                        p8 = (double*)(LookUpTable_SoC(v_cell[i]));
-                        soc_cell[i] = p8[0];
+                        p8 = (double*)(LookUpTable_SoC(ADCParam.v_cell[i]));
+                        balanceParam.soc_cell[i] = p8[0];
                     }
 
-                    soc_min = soc_max = soc_cell[0];
+                    balanceParam.soc_min = balanceParam.soc_max = balanceParam.soc_cell[0];
 
                     for (int i = 1;i<12;i++)
                     {
-                        if (soc_cell[i]<soc_min)
+                        if (balanceParam.soc_cell[i]<balanceParam.soc_min)
                         {
-                            soc_min = soc_cell[i];
+                            balanceParam.soc_min = balanceParam.soc_cell[i];
                         }else{
                             ;
                         }
 
-                        if (soc_cell[i]>soc_max)
+                        if (balanceParam.soc_cell[i]>balanceParam.soc_max)
                         {
-                            soc_max = soc_cell[i];
+                            balanceParam.soc_max = balanceParam.soc_cell[i];
                         }else{
                             ;
                         }
 
-                        soc_diff[i] = soc_cell[i]-soc_min;
-                        cou_diff[i] = soc_diff[i]*0.01*8586;
-                        I_bal[i] = v_cell[i]*0.030303;
-                        time_bal[i] = cou_diff[i]/I_bal[i];
+                        balanceParam.soc_diff[i] = balanceParam.soc_cell[i]-balanceParam.soc_min;
+                        balanceParam.cou_diff[i] = balanceParam.soc_diff[i]*0.01*8586;
+                        balanceParam.I_bal[i] = ADCParam.v_cell[i]*0.030303;
+                        balanceParam.time_bal[i] = balanceParam.cou_diff[i]/balanceParam.I_bal[i];
 
                     }
 
                     if(counter<voltage_size)
                     {
-                        V_sensor[counter] = p11[0];
-                        I_sensor[counter] = p11[1];
+                        ADCParam.V_sensor[counter] = p11[0];
+                        ADCParam.I_sensor[counter] = p11[1];
                         p8 = (double*)(LookUpTable_SoC(p11[0]));
                         xr[0][0] = 0;
                         xr[1][0] = p8[0]/100;
 
-                        if(counter ==voltage_size-1)
+                        if(counter == voltage_size-1)
                         {
-                            p5 = (double*)(init_RC(V_sensor,I_sensor));
-                            zeta[0][0] = p5[4];
-                            zeta[1][0] = p5[5];
-                            zeta[2][0] = p5[6];
-                            zeta[3][0] = p5[7];
+                            p5 = (double*)(init_RC(ADCParam.V_sensor,ADCParam.I_sensor));
+                            EstimationParam.zeta[0][0] = p5[4];
+                            EstimationParam.zeta[1][0] = p5[5];
+                            EstimationParam.zeta[2][0] = p5[6];
+                            EstimationParam.zeta[3][0] = p5[7];
 
                         }else{
                             ;
@@ -125,71 +131,71 @@ void hal_entry(void)
 
                         if (counter == voltage_size)
                         {
-                            V_sensor[0] =  V_sensor[counter-1];
-                            V_sensor[1] =  p11[0];
-                            I_sensor[0] =  I_sensor[counter-1];
-                            I_sensor[1] =  p11[1];
+                            ADCParam.V_sensor[0] =  ADCParam.V_sensor[counter-1];
+                            ADCParam.V_sensor[1] =  p11[0];
+                            ADCParam.I_sensor[0] =  ADCParam.I_sensor[counter-1];
+                            ADCParam.I_sensor[1] =  p11[1];
                         }else{
 
-                            V_sensor[0] =  V_sensor[1];
-                            V_sensor[1] =  p11[0];
-                            I_sensor[0] =  I_sensor[1];
-                            I_sensor[1] =  p11[1];
+                            ADCParam.V_sensor[0] =  ADCParam.V_sensor[1];
+                            ADCParam.V_sensor[1] =  p11[0];
+                            ADCParam.I_sensor[0] =  ADCParam.I_sensor[1];
+                            ADCParam.I_sensor[1] =  p11[1];
                         }
 
-                        if (counter ==voltage_size+25)
+                        if (counter == voltage_size+25)
                         {
 
-                            p8 = (double*)(LookUpTable_SoC(V_sensor[0]));
+                            p8 = (double*)(LookUpTable_SoC(ADCParam.V_sensor[0]));
                             xr[1][0] = p8[0]/100;
-                            p3 = (double*)(OnlineEstimation(1,V_sensor[0],I_sensor[1],I_sensor[0],zeta,V_sensor[1]));
-                            R0 = p3[0];
-                            Rp  = p3[1];
-                            Cp  = p3[2];
+                            p3 = (double*)(OnlineEstimation(1,ADCParam.V_sensor[0],ADCParam.I_sensor[1],ADCParam.I_sensor[0],EstimationParam.zeta,ADCParam.V_sensor[1]));
+                            EstimationParam.R0 = p3[0];
+                            EstimationParam.Rp  = p3[1];
+                            EstimationParam.Cp  = p3[2];
 
-                            double A[2][2] = {{-1/(Rp*Cp),0},{0,1}};
-                            double B[2][1] = {{1/Cp},{1/QR}};
+                            double A[2][2] = {{-1/(EstimationParam.Rp*EstimationParam.Cp),0},{0,1}};
+                            double B[2][1] = {{1/EstimationParam.Cp},{1/EstimationParam.QR}};
                             double C[1][2] = {{1,p8[1]}};
-                            double D[1] = {R0};
+                            double D[1] = {EstimationParam.R0};
 
-                            p9 = (double*)(kalman_init(p8[0],A,B,C,D,I_sensor[1],V_sensor[0],I_sensor[0]));
+                            p9 = (double*)(kalman_init(p8[0],A,B,C,D,ADCParam.I_sensor[1],ADCParam.V_sensor[0],ADCParam.I_sensor[0]));
                             xr[0][0] = p9[0];
                             xr[1][0] = p9[1];
-                            pkn[0][0] = p9[2];
-                            pkn[0][1] = p9[3];
-                            pkn[1][0] = p9[4];
-                            pkn[1][1] = p9[5];
+                            EstimationParam.pkn[0][0] = p9[2];
+                            EstimationParam.pkn[0][1] = p9[3];
+                            EstimationParam.pkn[1][0] = p9[4];
+                            EstimationParam.pkn[1][1] = p9[5];
 
                             soc_obv[0] = p8[0]/100;
                             soc_obv[1] = p8[1]/100;
 
-                        }else if(counter >voltage_size+25){
+                        }else if(counter > voltage_size+25){
 
-                            p3 = (double*)(OnlineEstimation(1,V_sensor[0],I_sensor[1],I_sensor[0],zeta,V_sensor[1]));
-                            R0 = p3[0];
-                            Rp  = p3[1];
-                            Cp  = p3[2];
+                            p3 = (double*)(OnlineEstimation(1,ADCParam.V_sensor[0],ADCParam.I_sensor[1],ADCParam.I_sensor[0],EstimationParam.zeta,ADCParam.V_sensor[1]));
+                            EstimationParam.R0 = p3[0];
+                            EstimationParam.Rp  = p3[1];
+                            EstimationParam.Cp  = p3[2];
 
-                            double A[2][2] = {{-1/(Rp*Cp),0},{0,1}};
-                            double B[2][1] = {{1/Cp},{1/QR}};
+                            double A[2][2] = {{-1/(EstimationParam.Rp*EstimationParam.Cp),0},{0,1}};
+                            double B[2][1] = {{1/EstimationParam.Cp},{1/EstimationParam.QR}};
                             double C[1][2] = {{1,p8[1]}};
-                            double D[1] = {R0};
+                            double D[1] = {EstimationParam.R0};
 
-                            zeta[0][0] = p3[4];
-                            zeta[1][0] = p3[5];
-                            zeta[2][0] = p3[6];
-                            zeta[3][0] = p3[7];
+                            EstimationParam.zeta[0][0] = p3[4];
+                            EstimationParam.zeta[1][0] = p3[5];
+                            EstimationParam.zeta[2][0] = p3[6];
+                            EstimationParam.zeta[3][0] = p3[7];
 
-                            ocv_perdict = V_sensor[0]-I_sensor[0]*R0;
-                            p8 = (double*)(LookUpTable_SoC(ocv_perdict));
-                            p10 = (double*)(kalman_update(xr,pkn,A,B,C,D, I_sensor[1],V_sensor[0], I_sensor[0]));
+                            EstimationParam.ocv_perdict = ADCParam.V_sensor[0]-ADCParam.I_sensor[0]*EstimationParam.R0;
+                            p8 = (double*)(LookUpTable_SoC(EstimationParam.ocv_perdict));
+                            p10 = (double*)(kalman_update(xr,EstimationParam.pkn,A,B,C,D, ADCParam.I_sensor[1],ADCParam.V_sensor[0], ADCParam.I_sensor[0]));
 
                             xr[0][0] = p10[0];
                             xr[1][0] = p10[1];
-                            pkn[0][0] = p10[2];
-                            pkn[0][1] = p10[3];
-                            pkn[1][0] = p10[4];
-                            pkn[1][1] = p10[5];
+                            EstimationParam.pkn[0][0] = p10[2];
+                            EstimationParam.pkn[0][1] = p10[3];
+                            EstimationParam.pkn[1][0] = p10[4];
+                            EstimationParam.pkn[1][1] = p10[5];
                         }
                     }
                 }
@@ -200,22 +206,24 @@ void hal_entry(void)
 
             case BMS_BALANCING_OPERATION:  //Passive Balancing
             {
-                   p13 = bal_pattern(time_bal);
-                   time_bal_min = time_balance_min(time_bal);
+                   p13 = bal_pattern(balanceParam.time_bal);
+                   time_bal_min = time_balance_min(balanceParam.time_bal);
                    bal_time = (int)(time_bal_min);
                    g_bfe0_ctrl.bal_pattern = (uint16_t)(p13[0] | p13[1] | p13[2] | p13[3] | p13[4] | p13[5] | p13[6] | p13[7] | p13[8] | p13[9] | p13[10] | p13[11]);
                    bms_err = g_bfe0.p_api->balanceControl(&g_bfe0_ctrl, BFE_CELL_BALANCE_ENABLE);
                    R_BSP_SoftwareDelay((uint32_t)(bal_time), BSP_DELAY_UNITS_SECONDS);
-                   p12 = time_balance_recal(time_bal, time_bal_min);
+                   p12 = time_balance_recal(balanceParam.time_bal, time_bal_min);
                        for (int i=0; i<12;i++)
                        {
-                         time_bal[i] = p12[i];
+                           balanceParam.time_bal[i] = p12[i];
                        }
 
                    g_bfe0_ctrl.balance_cell_sel[0] = 0;
                    g_bfe0_ctrl.balance_cell_sel[1] = 0;
 
-                break;
+                   R_BSP_SoftwareDelay(100000, BSP_DELAY_UNITS_SECONDS);
+
+                   break;
             }
 
             case BMS_CAN_TX:
@@ -397,8 +405,10 @@ void can_callback(can_callback_args_t *p_args)
 
 void timer_callback(timer_callback_args_t *p_args)
 {
+    ADCsenseParam ADCParam;
+    
     g_bfe0.p_api->vAllGet(&g_bfe0_ctrl, &g_bfe0_data[0]);
-    I_sense = ADC_sense();
+    ADCParam.I_sense = ADC_sense();
     g_timer_finished = true;
 }
 
